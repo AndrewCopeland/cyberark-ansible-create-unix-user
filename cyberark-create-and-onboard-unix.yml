@@ -1,0 +1,59 @@
+---
+- hosts: unixservers
+
+  collections:
+    - cyberark.pas
+  
+  vars:
+    cyberark_api_account:
+      address: "{{ lookup('env','CYBERARK_ADDRESS') }}"
+      username: "{{ lookup('env','CYBERARK_USERNAME') }}"
+      password: "{{ lookup('env','CYBERARK_PASSWORD') }}"
+
+    default_unix_admin:
+      username: newAdmin
+      password: newPassword
+
+  tasks: 
+    - name: Add the Unix user
+      user:
+        name: "{{ default_unix_admin.username }}"
+        password: "{{ default_unix_admin.password }}"   
+        state: present 
+        group: wheel        
+        createhome: yes
+      become: yes 
+      become_method: "sudo"
+      register: default_unix_admin
+    
+    - name: Logon to CyberArk Vault using PAS Web Services SDK
+      cyberark_authentication:
+        api_base_url: "{{ cyberark_api_account.address }}"
+        username: "{{ cyberark_api_account.username }}"
+        password: "{{ cyberark_api_account.password }}"
+        validate_certs: no
+
+    - name: Creating a CyberArk Account, setting a simple password but forcing a password change
+      cyberark_account:
+        identified_by: "address,username"
+        safe: PasswordManager
+        username: "unixUsername1"
+        address: "{{ inventory_hostname }}"
+        platform_id: UnixSSH
+        secret: "Cyberark1"
+        secret_management:
+            automatic_management_enabled: true        
+            management_action: change_immediately
+            perform_management_action: on_create
+        state: present
+        cyberark_session: "{{ cyberark_session }}"
+      register: cyberarkaction
+        
+    - name: Debug message
+      debug:
+        var: cyberarkaction
+
+    - name: Logoff from CyberArk Vault
+      cyberark_authentication:
+        state: absent
+        cyberark_session: "{{ cyberark_session }}"

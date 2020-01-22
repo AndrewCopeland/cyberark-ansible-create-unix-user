@@ -1,0 +1,12 @@
+- !host ansible1
+
+- &secrets
+  - !variable ansible1/linux/ssh_key
+  - !variable ansible1/cyberark/username
+  - !variable ansible1/cyberark/password
+  - !variable ansible1/cyberark/address
+
+- !permit
+  role: !host ansible1
+  resource: *secrets
+  privilege: [ read, execute ]

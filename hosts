@@ -1,0 +1,5 @@
+[unixservers]
+your.hostname.goes.here.com
+
+[unixservers:vars]
+ansible_user=ubuntu
