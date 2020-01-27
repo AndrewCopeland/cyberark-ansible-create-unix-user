@@ -13,18 +13,27 @@
     default_unix_admin:
       username: newAdmin
       password: newPassword
+      group: wheel
+      platform: UnixSSH
+      safe: PasswordManager
 
   tasks: 
+    - name: Ensure group "wheel" exists
+      group:
+        name: "{{ default_unix_admin.group }}"
+        state: present
+      become: yes
+      become_method: "sudo"
+
     - name: Add the Unix user
       user:
         name: "{{ default_unix_admin.username }}"
         password: "{{ default_unix_admin.password }}"   
         state: present 
-        group: wheel        
+        group: "{{ default_unix_admin.group }}"        
         createhome: yes
       become: yes 
       become_method: "sudo"
-      register: default_unix_admin
     
     - name: Logon to CyberArk Vault using PAS Web Services SDK
       cyberark_authentication:
@@ -36,11 +45,11 @@
     - name: Creating a CyberArk Account, setting a simple password but forcing a password change
       cyberark_account:
         identified_by: "address,username"
-        safe: PasswordManager
-        username: "unixUsername1"
+        safe: "{{ default_unix_admin.safe }}"
+        username: "{{ default_unix_admin.username }}"
         address: "{{ inventory_hostname }}"
-        platform_id: UnixSSH
-        secret: "Cyberark1"
+        platform_id: "{{ default_unix_admin.platform }}"
+        secret: "{{ default_unix_admin.password }}"
         secret_management:
             automatic_management_enabled: true        
             management_action: change_immediately
